@@ -1,12 +1,12 @@
 version: "2.4"
 volumes:
-  youTrackData:
-  youTrackBack:
-  youTrackLogs:
-  youTrackConf:
   caddy_config:
   caddy_data:
+  ntfy_config:
+  ntfy_cache:
+  ntfy_lib:
 services:
+  
   caddy:
     build:
       context: ./caddy
@@ -30,14 +30,32 @@ services:
       io.balena.features.dbus: '1'
       io.balena.features.supervisor-api: '1'
       io.balena.features.balena-api: '1'
-  youTrack:
-    image: jetbrains/youtrack:2023.3.22912
-    ports: 
-      - "8080:8080"
+  ntfy:
+    image: binwiederhier/ntfy
+    command: 
+      - serve
+    environment:
+      - TZ=America/Los_Angeles
+      - NTFY_LISTEN_HTTP=127.0.0.1:8256
+      - NTFY_BASE_URL=https://ntfy.sameureka.dev
+      - NTFY_CACHE_FILE=/var/lib/ntfy/cache.db
+      - NTFY_CACHE_DURATION=24h
+      - NTFY_UPSTREAM_BASE_URL=https://ntfy.sh
+      - NTFY_ATTACHMENT_CACHE_DIR=/var/lib/ntfy/attachments
+      - NTFY_BEHIND_PROXY=true
+      - NTFY_AUTH_FILE=/var/lib/ntfy/user.db
+      - NTFY_AUTH_DEFAULT_ACCESS=deny-all
+      - NTFY_ENABLE_LOGIN=true
     volumes:
-      - youTrackData:/opt/youtrack/data/
-      - youTrackConf:/opt/youtrack/conf/
-      - youTrackLogs:/opt/youtrack/logs/
-      - youTrackBack:/opt/youtrack/backups/
+      - ntfy_config:/etc/ntfy
+      - ntfy_cache:/var/cache/ntfy 
+      - ntfy_lib:/var/lib/ntfy
+    ports:
+      - 8256:8256
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
     labels:
       io.balena.features.dbus: '1'
+      io.balena.features.supervisor-api: '1'
+      io.balena.features.balena-api: '1'
